@@ -2,9 +2,10 @@ const express = require('express')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 
-const { BadRequest, Conflict, Unauthorized } = require('http-errors')
-const { joiRegisterSchema, joiLoginSchema } = require('../../models/user')
+const { BadRequest, Conflict, Unauthorized, NotFound } = require('http-errors')
+const { joiRegisterSchema, joiLoginSchema, SubscriptionJoiSchema } = require('../../models/user')
 const { SECRET_KEY = 3000 } = process.env
+const {authenticate} = require('../../middlewares')
 
 const router = express.Router()
 
@@ -65,6 +66,7 @@ router.post('/login', async (req, res, next) => {
             id: user._id
         }
         const token = jwt.sign(payload, SECRET_KEY, { expiresIn: '1h' })
+        await User.findByIdAndUpdate(user.id, {token})
         res.json({
             token,
             user: {
@@ -77,6 +79,39 @@ router.post('/login', async (req, res, next) => {
         next(error)
     }
     
+})
+
+router.get('/logout', authenticate, async (req, res) => { 
+    const { _id } = req.user
+    await User.findByIdAndUpdate(_id, { token: null })
+    res.status(204).send()
+})
+
+router.get('/current', authenticate, async (req, res) => {
+  const { email, subscription } = req.user
+    res.json({
+        user: {
+            email,
+            subscription,
+        }
+    })
+})
+
+router.patch('/', authenticate, async (req, res, next) => {
+  try {
+    const { error } = SubscriptionJoiSchema.validate(req.body)
+    if (error) {
+      throw new BadRequest(error.message)
+    }
+    const { _id } = req.user
+    const updated = await User.findOneAndUpdate(_id, req.body, { new: true })
+    if (!updated) {
+      throw new NotFound()
+    }
+    res.json(updated)
+  } catch (error) {
+    next(error)
+  }
 })
 
 module.exports = router

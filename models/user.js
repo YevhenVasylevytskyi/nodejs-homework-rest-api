@@ -19,7 +19,7 @@ const userSchema = Schema({
     subscription: {
         type: String,
         enum: ["starter", "pro", "business"],
-        default: "starter"
+        default: "starter",
     },
     token: {
         type: String,
@@ -37,10 +37,15 @@ const joiLoginSchema = Joi.object({
     password: Joi.string().min(6).required(),
 })
 
+const SubscriptionJoiSchema = Joi.object({
+  subscription: Joi.string().valid('starter', 'pro', 'business').required(),
+})
+
 const User = model("user", userSchema)
 
 module.exports = {
     User,
     joiRegisterSchema,
-    joiLoginSchema
+    joiLoginSchema,
+    SubscriptionJoiSchema
 }
