@@ -87,13 +87,13 @@ router.patch('/:contactId/favorite', async (req, res, next) => {
     if (req.body.favorite.toString().length === 0) {
         throw new BadRequest('missing fields favorite')
     }
-    const updateContact = await Contact.findByIdAndUpdate(contactId, { favorite }, { new: true })
+    const updateStatusContact = await Contact.findByIdAndUpdate(contactId, { favorite }, { new: true })
 
-    if (!updateContact) {
+    if (!updateStatusContact) {
       throw new NotFound()
     }
     
-    res.json(updateContact)
+    res.json(updateStatusContact)
   }
 
   catch (error) {

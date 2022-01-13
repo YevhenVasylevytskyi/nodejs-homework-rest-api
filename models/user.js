@@ -25,14 +25,22 @@ const userSchema = Schema({
         type: String,
         default: null,
     },
-}, {versionKey: false, timestamps: true})
+}, { versionKey: false, timestamps: true })
 
-const joiSchema = Joi.object({  
-    password: Joi.string().min(6).required(),
+const joiRegisterSchema = Joi.object({  
     email: Joi.string().pattern(emailRegexp).required(),
-    subscription: Joi.string(),
+    password: Joi.string().min(6).required(),
+})
+
+const joiLoginSchema = Joi.object({      
+    email: Joi.string().pattern(emailRegexp).required(),
+    password: Joi.string().min(6).required(),
 })
 
 const User = model("user", userSchema)
 
-module.exports = {User, joiSchema}
+module.exports = {
+    User,
+    joiRegisterSchema,
+    joiLoginSchema
+}
