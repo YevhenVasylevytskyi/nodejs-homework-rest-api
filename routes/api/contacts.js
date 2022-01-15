@@ -10,7 +10,7 @@ router.get('/', authenticate, async (req, res, next) => {
 
   try {
     const { page = 1, limit = 10, favorite } = req.query
-    // console.log(req.query)
+
     const { _id } = req.user
     const skip = (page - 1) * limit
     let contacts = await Contact.find({
@@ -66,7 +66,7 @@ router.post('/', authenticate, async (req, res, next) => {
     }
     const {_id} = req.user
     const newContact = await Contact.create({...req.body, owner: _id})
-    console.log(newContact)
+
      res.status(201).json(newContact)
   }
   catch (error) {
