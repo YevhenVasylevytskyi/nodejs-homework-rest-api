@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken')
 const gravatar = require('gravatar')
 const path = require('path')
 const fs = require('fs/promises')
-// const Jimp = require('jimp')
+const Jimp = require('jimp')
 
 const { BadRequest, Conflict, Unauthorized, NotFound } = require('http-errors')
 const { joiRegisterSchema, joiLoginSchema, SubscriptionJoiSchema } = require('../../models/user')
@@ -123,14 +123,17 @@ router.patch('/', authenticate, async (req, res, next) => {
 })
 
 router.patch('/avatars', authenticate, upload.single('avatar'), async (req, res) => {
-        const { path: tmpUpload, filename } = req.file
-        const [extension] = filename.split('.').reverse()
-        const newFileName = `${req.user._id}.${extension}`
-        const fileUpload = path.join(avatarDir, newFileName)
-        await fs.rename(tmpUpload, fileUpload)
-        const avatarURL = path.join('avatars', newFileName)
-        await User.findByIdAndUpdate(req.user._id, { avatarURL }, { new: true })
-        res.json({avatarURL})
+    const { path: tmpUpload, filename } = req.file
+    const image = await Jimp.read(tmpUpload)
+    image.resize(250, 250)
+    image.write(tmpUpload)
+    const [extension] = filename.split('.').reverse()
+    const newFileName = `${req.user._id}.${extension}`
+    const fileUpload = path.join(avatarDir, newFileName)
+    await fs.rename(tmpUpload, fileUpload)
+    const avatarURL = path.join('avatars', newFileName)
+    await User.findByIdAndUpdate(req.user._id, { avatarURL }, { new: true })
+    res.json({avatarURL})
  })
 
 module.exports = router
