@@ -1,15 +1,21 @@
 const express = require('express')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const gravatar = require('gravatar')
+const path = require('path')
+const fs = require('fs/promises')
+const Jimp = require('jimp')
 
 const { BadRequest, Conflict, Unauthorized, NotFound } = require('http-errors')
 const { joiRegisterSchema, joiLoginSchema, SubscriptionJoiSchema } = require('../../models/user')
 const { SECRET_KEY = 3000 } = process.env
-const {authenticate} = require('../../middlewares')
+const {authenticate, upload} = require('../../middlewares')
 
 const router = express.Router()
 
-const {User} = require('../../models')
+const { User } = require('../../models')
+
+const avatarDir = path.join(__dirname, '../../', 'public', 'avatars')
 
 router.post('/signup', async (req, res, next) => {
     try {
@@ -26,12 +32,13 @@ router.post('/signup', async (req, res, next) => {
         }
         const salt = await bcrypt.genSalt(10)
         const hashPassword = await bcrypt.hash(password, salt)
-        const newUser = await User.create({ name, email, password: hashPassword })
+        const avatarURL = gravatar.url(email)
+        const newUser = await User.create({ name, email, password: hashPassword, avatarURL })
 
         res.status(201).json({
             user: {                
                 email: newUser.email,
-                subscription: newUser.subscription
+                subscription: newUser.subscription,                
             }
         })
         
@@ -113,5 +120,24 @@ router.patch('/', authenticate, async (req, res, next) => {
     next(error)
   }
 })
+
+router.patch('/avatars', authenticate, upload.single('avatar'), async (req, res, next) => {
+    try {
+        const { path: tmpUpload, filename } = req.file
+        const image = await Jimp.read(tmpUpload)
+        image.resize(250, 250)
+        image.write(tmpUpload)
+        const [extension] = filename.split('.').reverse()
+        const newFileName = `${req.user._id}.${extension}`
+        const fileUpload = path.join(avatarDir, newFileName)
+        await fs.rename(tmpUpload, fileUpload)
+        const avatarURL = path.join('avatars', newFileName)
+        await User.findByIdAndUpdate(req.user._id, { avatarURL }, { new: true })
+        res.json({avatarURL})
+    } catch (error) {
+        next(error)
+    }
+   
+ })
 
 module.exports = router
